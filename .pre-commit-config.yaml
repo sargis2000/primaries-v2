@@ -1,0 +1,38 @@
+default_language_version:
+    python: python3.10
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+-   repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+    -   id: black
+        name: black Formatting
+-   repo: https://github.com/sondrelg/pep585-upgrade
+    rev: v1.0.1
+    hooks:
+    -   id: upgrade-type-hints
+-   repo: https://github.com/pycqa/pydocstyle
+    rev: 6.1.1
+    hooks:
+    -   id: pydocstyle
+        args:
+        - --convention=google
+        - --add-select=D204
+        - --add-ignore=D100,D102,D104,D105,D106,D107
+-   repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+        name: isort (python) Import Sorting
+        args:
+        - --settings-file .isort.cfg
+        - --multi-line VERTICAL_HANGING_INDENT
+        - --profile black
+        - --lines-after-imports 2
+        - --top os,sys

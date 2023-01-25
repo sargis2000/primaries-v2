@@ -1,0 +1,105 @@
+{% extends "admin/base_site.html" %}
+
+
+{% block content %}
+    <style>
+        .form-wrapper {
+            box-shadow: 0px 8px 10px 1px rgb(0 0 0 / 14%),
+            0px 3px 14px 2px rgb(0 0 0 / 12%),
+            0px 5px 5px -3px rgb(0 0 0 / 20%);
+            max-width: 50%;
+            padding: 16px;
+        }
+
+        .delete {
+            font-size: 14px;
+        }
+
+        .form-item {
+            flex-flow: row nowrap;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 6px;
+            padding: 20px;
+        }
+
+        .flex-container {
+            flex-wrap: wrap;
+            display: flex;
+            grid-gap: 4px
+        }
+
+        .tag {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            grid-gap: 16px;
+            box-shadow: 0 0 0 1px rgb(218 220 224) inset;
+            color: rgb(95, 99, 104);
+            padding: 10px 16px;
+            border-radius: 30px
+        }
+
+        .form-item input {
+            border: 0;
+            width: 100%;
+        }
+
+        .form-item input:focus {
+            border: 0;
+            outline: 0;
+        }
+
+        .msg_area {
+            width: 100%;
+            min-height: 150px;
+            resize: none;
+        }
+
+        .button {
+            width: 150px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #417690;
+            color: azure;
+            font-size: 14px;
+            border-radius: 4px;
+            border: 0;
+            margin-top: 16px;
+        }
+
+    </style>
+    <script>
+        function handle_teg_remove(id) {
+            document.getElementById(id).remove()
+        }
+
+
+    </script>
+    <form method="post" action="{% url 'admin:send_mail_splash' %}" class="form-wrapper">
+        {% csrf_token %}
+        <legend>Հաղորդագրություն նշված Էլ․ Հասցեներին։</legend>
+        <div class="form-item">
+            <label for="subject">
+                <div class="flex-container">
+                    {% for i in emails %}
+                        <p class="tag" id="{{ i }}">{{ i }}
+                            <span onclick="handle_teg_remove('{{ i }}')" class="delete">x</span>
+                            <input type="text" name="mails" placeholder="emails" value="{{ i }}" hidden>
+                        </p>
+                    {% endfor %}
+                    <input name="subject" placeholder="Թեմա">
+                    <textarea name="message" cols="5" rows="5" class="msg_area" placeholder="Հաղորդագրություն"
+                              required></textarea>
+                    <div style="display: flex; justify-content: center ; width: 100%" >
+                        <button type="submit" class="button">ՈՒղարկել</button>
+                    </div>
+                </div>
+            </label>
+        </div>
+    </form>
+
+
+{% endblock content %}
