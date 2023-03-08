@@ -65,10 +65,8 @@ Apply migranions
 python manage.py makemigrations && python manage.py migrate
 ```
 
-### Step10:
-[Install ZAP](https://www.zaproxy.org/download/)
 
-### Step11:
+### Step10:
 Create .env  and fill it  
 SECRET_KEY=django secret key     
 zap_api_key=zap api key
@@ -83,7 +81,7 @@ DEPLOYMENT_MODE=boolean
 EDP_REC_ACCOUNT=idram merchant account
 SECRET_KEY=Idram secret
 ```
-### Step12:
+### Step11:
 Run the server 
 ``` bash
 python manage.py runserver
