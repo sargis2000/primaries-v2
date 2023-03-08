@@ -16,4 +16,5 @@ urlpatterns = [
     path("vote/", VoteView.as_view(), name="vote"),
     path("vote-result/", VoteResult.as_view(), name="vote_result"),
     path("pay_via_image/", PayViaImageApiView.as_view(), name="pay_via_image"),
+    path('party/', Party.as_view(), name="party")
 ]

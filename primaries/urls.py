@@ -58,4 +58,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api-auth/", include("accounts.urls")),
     path("ckeditor/", include("ckeditor_uploader.urls")),
+    path(
+        "allauth-accounts/", include("allauth.urls"), name="socialaccount_signup"
+    ),  # Just for Fb login
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

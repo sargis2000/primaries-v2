@@ -1,7 +1,9 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
-
+from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.validators import UniqueValidator
+from django.contrib.auth.password_validation import UserAttributeSimilarityValidator, MinimumLengthValidator, CommonPasswordValidator
 from accounts.models import CandidatePost, CandidateProfile, User, VoterProfile
 
 
@@ -11,6 +13,7 @@ __all__ = (
     "CandidateProfileSerializer",
     "CandidatePostSerializer",
     "LoginSerializer",
+    "FBEmailserializer",
 )
 
 
@@ -29,6 +32,13 @@ class CreateUserSerializer(serializers.ModelSerializer):
         fields = ["email", "password", "password_confirm"]
         wro_settings = {"write_only": True}
         extra_kwargs = {"password": wro_settings, "password_confirm": wro_settings}
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError(str(exc))
+        return value
 
     def create(self, validated_data):
         """
@@ -185,3 +195,9 @@ class ChangePasswordSerializer(serializers.Serializer):
     """
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+class FBEmailserializer(serializers.Serializer):
+    email = serializers.EmailField(
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )

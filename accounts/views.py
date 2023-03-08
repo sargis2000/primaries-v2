@@ -1,3 +1,4 @@
+import requests
 from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
 from dj_rest_auth.registration.views import SocialLoginView
 from django.conf import settings
@@ -10,11 +11,15 @@ from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from rest_framework import authentication, permissions, status
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.authentication import (
+    BasicAuthentication,
+    SessionAuthentication,
+    TokenAuthentication,
+)
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
-
+from rest_framework.authtoken.models import Token
 from .models import CandidatePost, CandidateProfile, User, VoterProfile
 from .serializers import *
 from .utils import CandidatePermission, send_mailgun_mail
@@ -141,7 +146,11 @@ class GetCSRFToken(APIView):
 class SessionView(APIView):
     """This class is a subclass of the APIView class, and it's a view that handles the login and logout of users"""
 
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [
+        SessionAuthentication,
+        BasicAuthentication,
+        TokenAuthentication,
+    ]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, format=None):
@@ -210,13 +219,13 @@ class SessionView(APIView):
 class UserApiView(APIView):
     """This class is a subclass of the APIView class, and it's a view that handles HTTP requests for the User model"""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.AllowAny]
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def post(self, request) -> Response:
         """
@@ -239,13 +248,13 @@ class UserApiView(APIView):
 class VoterProfileConfirmMail(APIView):
     """A class which send email when voter creates profile or requests new one"""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def get(self, request) -> Response:
         """
@@ -278,7 +287,7 @@ class VoterProfileConfirmMail(APIView):
 class VoterProfileAPIView(APIView):
     """This class is a subclass of the APIView class, and it's a view that will return a voter's profile."""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request) -> Response:
@@ -349,12 +358,12 @@ class VoterProfileAPIView(APIView):
 class ActivateVoterProfileAPIView(APIView):
     """This class is a view that allows a user to activate their voter profile"""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def get(self, request, pk=None) -> Response:
         """
@@ -395,13 +404,13 @@ class ActivateVoterProfileAPIView(APIView):
 class CandidateProfileConfirmMail(APIView):
     """This class is used to send a confirmation email to the candidate after he/she has successfully created a profile."""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def get(self, request) -> Response:
         """
@@ -433,7 +442,7 @@ class CandidateProfileConfirmMail(APIView):
 class CandidateProfileAPIview(APIView):
     """This class is a subclass of the APIView class, and it's purpose is to provide a view for the candidate profile."""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request) -> Response:
@@ -508,12 +517,12 @@ class CandidateProfileAPIview(APIView):
 class ActivateCandidateProfileAPIView(APIView):
     """This class is used to activate a candidate profile"""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def get(self, request, pk=None):
         """
@@ -546,15 +555,19 @@ class ActivateCandidateProfileAPIView(APIView):
         user.candidateprofile.is_email_verified = True
         user.candidateprofile.save()
         try:
-            send_mail(
+            send_mailgun_mail(
                 subject="Candidate verified email",
-                message=f"pls check Candidate profiles. {request.user} created profile and verified email",
-                from_email=settings.EMAIL_FROM,
-                recipient_list=(settings.ADMIN_EMAIL,),
+                message=f"Խնդրում ենք ստուգեք ըտրողի էջը"
+                        f" {request.user.candidateprofile.first_name + ' ' + request.user.candidateprofile.last_name } "
+                        f" նա ստեղծել է էջ և հաստատել այն։",
+                form=settings.EMAIL_FROM,
+                to=[settings.ADMIN_EMAIL],
             )
         except:
             return Response("Raised error")
-        return Response({"message": "Email successfully confirmed"}, status.HTTP_200_OK)
+        return Response(
+            {"message": "էլ հաստցեն հաջղւտիամբ հաստատվեց։"}, status.HTTP_200_OK
+        )
 
 
 @method_decorator(csrf_protect, "post")
@@ -562,7 +575,7 @@ class ActivateCandidateProfileAPIView(APIView):
 class CandidatePostAPIView(APIView):
     """This class is a subclass of the APIView class, and it's a view that will handle requests to the /api/candidate/<int:pk>/post/ endpoint."""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, CandidatePermission]
 
     def get(self, request) -> Response:
@@ -640,13 +653,13 @@ class CandidatePostAPIView(APIView):
 class LoginAPIView(APIView):
     """This class is a subclass of the APIView class, and it's going to handle the login functionality for our API"""
 
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = (permissions.AllowAny,)
 
-    throttle_classes = (
-        AnonThrottle,
-        UserThrottle,
-    )
+    # throttle_classes = (
+    #     AnonThrottle,
+    #     UserThrottle,
+    # )
 
     def post(self, request):
         """
@@ -666,7 +679,7 @@ class LoginAPIView(APIView):
 class LogoutAPIView(APIView):
     """This class is a subclass of the APIView class, and it's purpose is to logout the user."""
 
-    authentication_classes = [authentication.SessionAuthentication]
+    authentication_classes = [authentication.SessionAuthentication, TokenAuthentication]
 
     def get(self, request):
         """
@@ -680,10 +693,48 @@ class LogoutAPIView(APIView):
 
 
 class FacebookLogin(SocialLoginView):
-    """This is a view that will handle the login process for Facebook users.
-    The adapter_class attribute is a reference to the FacebookOAuth2Adapter class that we created earlier"""
-
     adapter_class = FacebookOAuth2Adapter
+
+    def post(self, request, *args, **kwargs):
+        access_token = request.data.get("access_token", None)
+        graph_url = 'https://graph.facebook.com/me?fields=id,name,link,email,picture.width(400).height(400)&access_token=' + access_token
+        try:
+            res = super().post(request, args, kwargs)
+        except Exception as e:
+            response = requests.get(graph_url)
+            data = response.json()
+            if User.objects.filter(email=data.get("email")).exists():
+                existing_user = User.objects.get(email=data.get("email"))
+                login(request, existing_user)
+                return Response({"message": "Logged in successfully."}, status=status.HTTP_200_OK)
+        else:
+            user_id = Token.objects.get(key=res.data["key"]).user_id
+            user = User.objects.get(id=user_id)
+
+            if user.email in ("", None, " "):
+                new_email = request.data.get("email", None)
+                if new_email:
+                    serializer = FBEmailserializer(data=request.data)
+                    if serializer.is_valid():
+                        user.email = new_email
+                        user.save()
+                    else:
+                        user.delete()
+                        return Response(
+                            {
+                                "email": serializer.errors["email"][0],
+                                "access_token": access_token,
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                else:
+                    user.delete()
+                    return Response(
+                        {"email": "Օգտատերը էլ հաստցե չունի", "access_token": access_token},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+            res.data["fb_profile_info"] = requests.get(graph_url).json()
+            return res
 
 
 def send_email_view(request):
@@ -729,6 +780,8 @@ class GetVoterProfiles(APIView):
 
         voters = VoterProfile.objects.all().filter(user__is_voter=True)
         serializer = VoterProfileSerializer(instance=voters, many=True)
+        for i in serializer.data:
+            i['email'] = VoterProfile.objects.get(id=i['id']).user.email
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -753,19 +806,24 @@ class ChangePasswordView(generics.UpdateAPIView):
             # Check old password
             if not self.object.check_password(serializer.data.get("old_password")):
                 return Response(
-                    {"old_password": ["Wrong password."]},
+                    {"old_password": ["Սխալ Գաղտնաբռ."]},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             # set_password also hashes the password that the user will get
             self.object.set_password(serializer.data.get("new_password"))
             self.object.save()
-            return Response("Password updated successfully", status=status.HTTP_200_OK)
+            return Response(
+                "Գաղտնաբրը հաջողությամբ փոփոխվեց", status=status.HTTP_200_OK
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserDeleteView(APIView):
+    authentication_classes = (SessionAuthentication, TokenAuthentication)
     permission_classes = (IsAuthenticated,)
 
     def delete(self, request):
         user = request.user
         user.delete()
+        return Response("OK", status=status.HTTP_200_OK)
+

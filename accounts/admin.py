@@ -1,5 +1,5 @@
 from allauth.account.models import EmailAddress
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.models import SocialToken, SocialApp, SocialAccount
 from django import forms
 from django.contrib import admin
 from django.contrib.admin import display
@@ -164,7 +164,7 @@ class CandidateProfileAdmin(admin.ModelAdmin):
         return TemplateResponse(
             request,
             "send_mail.html",
-            context={"emails": queryset.values_list("email", flat=True)},
+            context={"emails": queryset.values_list("user__email", flat=True)},
         )
 
     send_mail_action.short_description = "Ուղղարկել նամակ Նշված  թեկնածուներին"
@@ -191,14 +191,15 @@ class CandidateProfileAdmin(admin.ModelAdmin):
         return "{0} profile".format(obj.user.email)
 
     list_display = (
-        "full_name",
+        "first_name",
+        "last_name",
         "gender",
         "phone_number",
         "get_picture",
+        "is_approved",
     )
-    list_filter = ("gender", "party")
+    list_filter = ("gender", "party", "is_approved")
     search_fields = (
-        "email",
         "phone_number",
         "first_name",
         "last_name",
@@ -240,13 +241,24 @@ class VoterProfile(admin.ModelAdmin):
     def full_name(obj):
         return "{0} profile".format(obj.user.email)
 
-    list_display = ("phone_number", "address", "is_email_verified")
-    search_fields = ("phone_number",)
-    list_filter = ("is_email_verified", "is_paid")
+    list_display = (
+        "first_name",
+        "last_name",
+        "phone_number",
+        "address",
+        "is_email_verified",
+    )
+    search_fields = ("phone_number", "first_name", "last_name")
+    list_filter = (
+        "is_email_verified",
+        "is_paid",
+    )
 
 
 admin.site.unregister(ResetPasswordToken)
 admin.site.unregister(Group)
 admin.site.unregister(EmailAddress)
 admin.site.unregister(SocialToken)
+admin.site.unregister(SocialApp)
+admin.site.unregister(SocialAccount)
 admin.site.unregister(TokenProxy)

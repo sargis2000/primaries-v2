@@ -15,7 +15,6 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
-
 project_folder = os.path.expanduser("~/primaries")
 load_dotenv(os.path.join(project_folder, ".env"))
 load_dotenv()
@@ -101,7 +100,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:4040",
     "http://localhost:8000",
     "https://api.primaries.am",
-    "https://app-primaries.vercel.app",
+    "https://app-primaries.vercel.app"
 ]
 CORS_ALLOWED_ORIGINS = [
     "https://app.primaries.am",
@@ -111,7 +110,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:4040",
     "http://127.0.0.1:8000",
     "https://api.primaries.am",
-    "https://app-primaries.vercel.app",
+    "https://app-primaries.vercel.app"
 ]
 ROOT_URLCONF = "primaries.urls"
 TEMPLATES = [
@@ -154,15 +153,34 @@ DATABASES["default"].update(db_from_env)
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        'OPTIONS': {
+            'user_attributes': (
+                'email',
+            )}
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {
+            "min_length": 8,
+        },
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+    {
+        'NAME': 'accounts.custom_validators.NumberValidator'
+    },
+    {
+        'NAME': 'accounts.custom_validators.UppercaseValidator',
+    },
+    {
+        'NAME': 'accounts.custom_validators.LowercaseValidator',
+    },
+    {
+        'NAME': 'accounts.custom_validators.SymbolValidator',
     },
 ]
 
@@ -190,11 +208,11 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
     ],
     "EXCEPTION_HANDLER": "accounts.utils.custom_exception_handler",
 }
@@ -211,6 +229,10 @@ DATE_INPUT_FORMATS = ["%d/%m/%Y"]
 USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
+LOCALE_PATHS = (
+    os.path.join(BASE_DIR, "locale"),
+    os.path.join(BASE_DIR, "accounts/locale"),
+)
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATIC_URL = "static/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
@@ -228,9 +250,16 @@ DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 AUTH_USER_MODEL = "accounts.User"
 
-ACCOUNT_USER_MODEL_USERNAME_FIELD = "email"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_REDIRECT_URL = "/"
+USER_RESET_PASSWORD_URL = "https://app.primaries.am/confirm/password/"
 VOTER_PROFILE_ACTIVATION_URL = "https://app.primaries.am/confirm/voter/"
 CANDIDATE_PROFILE_ACTIVATION_URL = "https://app.primaries.am/confirm/candidate/"
 

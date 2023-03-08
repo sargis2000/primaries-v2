@@ -12,7 +12,14 @@ from rest_framework.views import APIView
 from accounts.models import CandidatePost, CandidateProfile, VoterProfile
 from accounts.serializers import CandidatePostSerializer, CandidateProfileSerializer
 from accounts.utils import VoterPermission, send_mailgun_mail
-from .models import EvaluateModel, GlobalConfigs, MarkModel, News, VotingModel
+from .models import (
+    EvaluateModel,
+    GlobalConfigs,
+    MarkModel,
+    News,
+    VotingModel,
+    choice_stage,
+)
 from .serializers import *
 
 
@@ -28,6 +35,7 @@ __all__ = [
     "GETStage",
     "VoteResult",
     "PayViaImageApiView",
+    "Party"
 ]
 
 
@@ -242,7 +250,7 @@ class SendMailAPIVIEW(APIView):
         admin = data.get("admin", None)
         try:
             candidate = CandidateProfile.objects.get(id=data["candidate_id"])
-            to_mail = candidate.email
+            to_mail = candidate.user.email
             if admin is not None:
                 to_mail = settings.ADMIN_EMAIL
         except CandidateProfile.DoesNotExist:
@@ -349,7 +357,9 @@ class VoteView(APIView):
                 return Response("Սխալ քվեաթերթիկ", status=status.HTTP_400_BAD_REQUEST)
             # Checking if the votes are valid.
             if not valid_ids(votes):
-                return Response("Թեկնածուների ID-ների Սխալ")
+                return Response(
+                    "Թեկնածուների ID-ների Սխալ", status=status.HTTP_400_BAD_REQUEST
+                )
 
             # Checking if the voter has already voted in the current stage.
             if VotingModel.objects.filter(voter=voter_profile, stage=stage).exists():
@@ -417,9 +427,14 @@ class GETStage(APIView):
         :param request: The request object
         :return: The stage of the game.
         """
-        return Response(
-            {"stage": GlobalConfigs.objects.get(id=1).stage}, status=status.HTTP_200_OK
-        )
+        stage = GlobalConfigs.objects.get(id=1).stage
+        name = None
+        for i in choice_stage:
+            if i[0] == stage:
+                name = i[1]
+                break
+
+        return Response({"stage": stage, "name": name}, status=status.HTTP_200_OK)
 
 
 def get_vote_result(stage: int, id: str):
@@ -473,3 +488,13 @@ class PayViaImageApiView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class Party(APIView):
+
+    def get(self, requset):
+        values = CandidateProfile.objects.all().values_list('party', flat=True)
+        values = set(values)
+        print(values)
+        return Response({"party": values}, status=status.HTTP_200_OK)

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, status
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -24,7 +24,7 @@ values = {
 
 
 class PayForEvaluate(APIView):
-    authentication_classes = [SessionAuthentication]
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):

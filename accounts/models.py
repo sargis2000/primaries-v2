@@ -1,6 +1,9 @@
 import datetime
+import re
 import uuid
 
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.urls import reverse
 from django_rest_passwordreset.signals import reset_password_token_created
 from django.conf import settings
@@ -13,8 +16,14 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.html import mark_safe
 from phonenumber_field.modelfields import PhoneNumberField
-
 from .managers import CustomUserManager
+
+
+def validate_url(value):
+
+    regex = r"^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$"
+    if not re.match(regex, value):
+        raise ValidationError("Մուտքագրեք վավեր URL")
 
 
 gender = (
@@ -40,7 +49,7 @@ region = (
 class User(AbstractBaseUser, PermissionsMixin):
     """The User class inherits from AbstractBaseUser and PermissionsMixin"""
 
-    email = models.EmailField(max_length=30, verbose_name="էլ․ հաստցէ", unique=True)
+    email = models.EmailField(max_length=70, verbose_name="էլ․ հաստցէ", unique=True)
     is_staff = models.BooleanField(default=False, verbose_name="Անձնակազմ")
     is_active = models.BooleanField(default=True, verbose_name="Ակտիվ")
     is_voter = models.BooleanField(default=False, verbose_name="Ընտրող")
@@ -74,22 +83,24 @@ class CandidateProfile(models.Model):
     phone_number = PhoneNumberField(verbose_name="Հեռախոսահամար")
     region = models.CharField(max_length=16, choices=region, verbose_name="Տարածաշրջան")
     address = models.CharField(max_length=100, verbose_name="Հասցե")
-    facebook_url = models.URLField(
-        max_length=300, verbose_name="Facebook Հղում", help_text="Facebook account url"
+    facebook_url = models.CharField(
+        max_length=300, verbose_name="Facebook Հղում", help_text="Facebook account url", validators=[validate_url],
     )
-    youtube_url = models.URLField(
+    youtube_url = models.CharField(
         max_length=300,
         verbose_name="YouTube Հղում",
         help_text="Youtube account url",
         null=True,
         blank=True,
+        validators=[validate_url],
     )
-    additional_url = models.URLField(
+    additional_url = models.CharField(
         max_length=300,
         verbose_name="Լրացուցիչ հղում",
         help_text="Additional url",
         null=True,
         blank=True,
+        validators=[validate_url],
     )
     party = models.CharField(
         max_length=200,
@@ -146,13 +157,15 @@ class VoterProfile(models.Model):
         default=datetime.date(1950, 1, 1), verbose_name="Ծննդյան օր"
     )
     address = models.CharField(max_length=100, verbose_name="Հասցե")
-    soc_url = models.URLField(max_length=300, verbose_name="Սոցիալական կայքի հղում")
+    soc_url = models.CharField(max_length=300, verbose_name="Սոցիալական կայքի հղում", validators=[validate_url],)
     is_email_verified = models.BooleanField(
         default=False, verbose_name="Էլ․ Հասցեն հատատված է"
     )
     is_paid = models.BooleanField(default=False, verbose_name="ՎՃարել է ")
-    votes_count = models.IntegerField(default=None, null=True, blank=True)
-    already_voted = models.BooleanField(default=False)
+    votes_count = models.IntegerField(
+        default=None, null=True, blank=True, verbose_name="Քվեների քանակ"
+    )
+    already_voted = models.BooleanField(default=False, verbose_name="Արդեն քվեարկել է")
 
     def __str__(self):
         return self.first_name + " " + self.last_name
@@ -173,7 +186,7 @@ class CandidatePost(models.Model):
     )
     title = models.CharField(max_length=100, verbose_name="Վերնագիր")
     text = RichTextUploadingField("Տեքստ", null=True, blank=True)
-    media_path = models.URLField(
+    media_path = models.CharField(
         max_length=300, verbose_name="Տեսահոլովակի հղում", null=True, blank=True
     )
     photo = models.ImageField(
@@ -270,12 +283,12 @@ def password_reset_token_created(
 ):
 
     email_plaintext_message = "{}?token={}".format(
-        reverse("password_reset:reset-password-request"), reset_password_token.key
+        settings.USER_RESET_PASSWORD_URL, reset_password_token.key
     )
 
     send_mailgun_mail(
         form=settings.EMAIL_FROM,
         to=[reset_password_token.user.email],
         message=email_plaintext_message,
-        subject="Password Reset for {title}".format(title="primaries.am"),
+        subject="Գաղտնաբառի վերականգնում {title}".format(title="primaries.am"),
     )

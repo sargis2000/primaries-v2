@@ -76,7 +76,8 @@ class VotingAdmin(admin.ModelAdmin):
 @admin.register(PayViaImage)
 class PayViaImageAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "get_voter_profile_full_name",
         "get_picture",
     )
-    search_fields = ("get_voter_profile_full_name",)
+    search_fields = ("voter_profile__first_name", "voter_profile__last_name", "id")

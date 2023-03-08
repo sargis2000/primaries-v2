@@ -25,16 +25,6 @@ class PayAdmin(admin.ModelAdmin):
         """
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        """
-        If the user is a superuser, they can delete the object. Otherwise, they can't
-
-        :param request: The request object
-        :param obj: The object being edited
-        :return: The has_delete_permission method is being returned.
-        """
-        return False
-
     def has_change_permission(self, request, obj=None):
         """
         "If the user is a superuser, then they have permission to change the object. Otherwise, they don't."

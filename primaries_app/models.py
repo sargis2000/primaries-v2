@@ -10,6 +10,15 @@ from django.utils.safestring import mark_safe
 from accounts.models import CandidateProfile, User, VoterProfile
 from accounts.utils import send_mailgun_mail
 
+choice_stage = (
+    ("1", "ՈՐԱԿԱՎՈՐՄԱՆ ՓՈՒԼ"),
+    ("2", "ՀԻՄՆԱԿԱՆ ՓՈՒԼ․ ՔՆՆԱՐԿՈՒՄՆԵՐ ԵՎ ԸՆՏՐՈՂՆԵՐԻ ԳՐԱՆՑՈՒՄ"),
+    ("3", "ՀԻՄՆԱԿԱՆ ՓՈՒԼ․ ՔՎԵԱՐԿՈՒԹՅՈՒՆ"),
+    ("4", "ԵԶՐԱՓՈԿԻՉ ՓՈՒԼ․ ՔՆՆԱՐԿՈՒՄՆԵՐ ԵՎ ԸՆՏՐՈՂՆԵՐԻ ԳՐԱՆՑՈՒՄ"),
+    ("5", "ԵԶՐԱՓԱԿԻՉ  ՓՈՒԼ․ ՔՎԵԱՐԿՈՒԹՅՈՒՆ"),
+    (None, "Ոչ ակտիվ փուլ"),
+)
+
 
 class MarkModel(models.Model):
     """A model for creating texts and marks for evaluating candidates"""
@@ -21,8 +30,8 @@ class MarkModel(models.Model):
     )
 
     class Meta:
-        verbose_name = "Վստահություն հայտնելու Ընտրանք"
-        verbose_name_plural = "Վստահություն հայտնելու Ընտրանքներ"
+        verbose_name = "Վստահություն հայտնելու չափորոշիչ"
+        verbose_name_plural = "Վստահություն հայտնելու չափորոշիչներ"
 
     def __str__(self):
         return self.content[:30]
@@ -59,6 +68,14 @@ class EvaluateModel(models.Model):
         self.full_clean()
         super(EvaluateModel, self).save(*args, **kwargs)
 
+    def __str__(self):
+        return (
+            self.voter.first_name
+            + " "
+            + self.voter.last_name
+            + " վստահության քվեարկում"
+        )
+
     class Meta:
         unique_together = (
             "voter",
@@ -93,14 +110,7 @@ class News(models.Model):
 
 class GlobalConfigs(models.Model):
     stage = models.CharField(
-        choices=(
-            ("1", "ՈՐԱԿԱՎՈՐՄԱՆ ՓՈՒԼ"),
-            ("2", "ՀԻՄՆԱԿԱՆ ՓՈՒԼ․ ՔՆՆԱՐԿՈՒՄՆԵՐ ԵՎ ԸՆՏՐՈՂՆԵՐԻ ԳՐԱՆՑՈՒՄ"),
-            ("3", "ՀԻՄՆԱԿԱՆ ՓՈՒԼ․ ՔՎԵԱՐԿՈՒԹՅՈՒՆ"),
-            ("4", "ԵԶՐԱՓՈԿԻՉ ՓՈՒԼ․ ՔՆՆԱՐԿՈՒՄՆԵՐ ԵՎ ԸՆՏՐՈՂՆԵՐԻ ԳՐԱՆՑՈՒՄ"),
-            ("5", "ԵԶՐԱՓԱԿԻՉ  ՓՈՒԼ․ ՔՎԵԱՐԿՈՒԹՅՈՒՆ"),
-            (None, "Ոչ ակտիվ փուլ"),
-        ),
+        choices=choice_stage,
         blank=True,
         null=True,
         default=None,
@@ -192,6 +202,6 @@ def post_save_image(sender, instance, created, **kwargs) -> None:
             form=instance.voter_profile.user.email,
             to=settings.ADMIN_EMAIL,
             subject="ՎՃարում",
-            message=f"{instance.get_voter_profile_full_name} ընտրողը ուղղարկել է"
-            f" վճարման կտրոն խնդրում ենք ստուգեք այն և հաստատեք նրա ընտրողի կարգավիճակը։",
+            message=f"{instance.voter_profile.first_name + ' ' + instance.voter_profile.last_name } ընտրողը ուղղարկել է"
+            f" վճարման կտրոն խնդրում ենք ստուգեք այն և հաստատեք նրա ընտրողի կարգավիճակը։ id={instance.id}",
         )
